@@ -9,6 +9,7 @@ A dependency-free expense splitting web app that can be hosted directly on GitHu
 - Add shared expenses
 - Split expenses equally between selected members
 - Choose a group currency, including USD, EUR, SEK, INR, GBP, CAD, AUD, JPY, and more
+- Convert existing expenses with live exchange rates when changing currency
 - Show per-person balances
 - Simplify who should pay whom
 - Persist data in browser `localStorage`
@@ -25,6 +26,8 @@ A dependency-free expense splitting web app that can be hosted directly on GitHu
 6. Click **Copy link** and open that link on another phone.
 
 Anyone with a copied group link can view and edit that group. Keep the link private.
+
+Exchange rates are fetched from the Frankfurter public API when a group currency changes.
 
 ## Run locally
 

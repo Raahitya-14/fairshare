@@ -111,6 +111,32 @@ begin
 end;
 $$;
 
+create or replace function public.convert_group_currency(p_share_code text, p_currency text, p_rate numeric)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_group_id uuid;
+begin
+  if p_rate <= 0 then
+    raise exception 'Invalid exchange rate';
+  end if;
+
+  update public.groups
+  set currency = p_currency
+  where share_code = p_share_code
+  returning id into v_group_id;
+
+  update public.expenses
+  set amount = round(amount * p_rate, 2)
+  where group_id = v_group_id;
+
+  return public.group_to_json(v_group_id);
+end;
+$$;
+
 create or replace function public.add_group_member(p_share_code text, p_name text)
 returns jsonb
 language plpgsql
@@ -215,6 +241,7 @@ $$;
 grant execute on function public.get_shared_group(text) to anon, authenticated;
 grant execute on function public.create_shared_group(text, text) to anon, authenticated;
 grant execute on function public.update_group_currency(text, text) to anon, authenticated;
+grant execute on function public.convert_group_currency(text, text, numeric) to anon, authenticated;
 grant execute on function public.add_group_member(text, text) to anon, authenticated;
 grant execute on function public.remove_group_member(text, uuid) to anon, authenticated;
 grant execute on function public.add_shared_expense(text, text, numeric, uuid, uuid[]) to anon, authenticated;

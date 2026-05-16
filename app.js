@@ -1,6 +1,7 @@
 const STORAGE_KEY = "fairshare-state-v1";
 const SUPABASE_URL = "https://mdzrdxofxyxbuozdiewh.supabase.co";
 const SUPABASE_KEY = "sb_publishable_MwzRQPWFxez7gmn_S9-1CA_bFIp_bL8";
+const RATES_API_URL = "https://api.frankfurter.dev/v2";
 const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY);
 let syncTimer;
 
@@ -214,6 +215,66 @@ function money(value, currency = "USD") {
 
 function currencyHasDecimals(currency) {
   return !["JPY", "KRW", "IDR"].includes(currency);
+}
+
+function roundCurrencyAmount(value, currency) {
+  const precision = currencyHasDecimals(currency) ? 100 : 1;
+  return Math.round(value * precision) / precision;
+}
+
+async function fetchExchangeRate(fromCurrency, toCurrency) {
+  if (fromCurrency === toCurrency) return 1;
+
+  const response = await fetch(`${RATES_API_URL}/rate/${fromCurrency}/${toCurrency}`);
+  const data = await response.json();
+  if (!response.ok || typeof data.rate !== "number") {
+    throw new Error(data.message || `Could not convert ${fromCurrency} to ${toCurrency}`);
+  }
+  return data.rate;
+}
+
+async function changeGroupCurrency(nextCurrency) {
+  const group = activeGroup();
+  const previousCurrency = group.currency || "USD";
+  if (nextCurrency === previousCurrency) return;
+
+  const shouldConvert =
+    group.expenses.length === 0 ||
+    confirm(
+      `Convert all existing expenses from ${previousCurrency} to ${nextCurrency} using the latest exchange rate?`
+    );
+
+  if (!shouldConvert) {
+    render();
+    return;
+  }
+
+  try {
+    setStatus(`Fetching ${previousCurrency} to ${nextCurrency} rate...`);
+    const rate = await fetchExchangeRate(previousCurrency, nextCurrency);
+
+    if (group.shareCode) {
+      await rpc("convert_group_currency", {
+        p_share_code: group.shareCode,
+        p_currency: nextCurrency,
+        p_rate: rate,
+      });
+      setStatus(`Converted at 1 ${previousCurrency} = ${rate.toFixed(4)} ${nextCurrency}`);
+      return;
+    }
+
+    group.expenses = group.expenses.map((expense) => ({
+      ...expense,
+      amount: roundCurrencyAmount(expense.amount * rate, nextCurrency),
+    }));
+    group.currency = nextCurrency;
+    render();
+    setStatus(`Converted at 1 ${previousCurrency} = ${rate.toFixed(4)} ${nextCurrency}`);
+  } catch (error) {
+    render();
+    setStatus(`Exchange rate error: ${error.message}`);
+    alert(`Could not convert currency: ${error.message}`);
+  }
 }
 
 function activeGroup() {
@@ -581,14 +642,7 @@ els.expenseForm.addEventListener("submit", async (event) => {
 });
 
 els.currencySelect.addEventListener("change", async () => {
-  const group = activeGroup();
-  if (group.shareCode) {
-    await rpc("update_group_currency", { p_share_code: group.shareCode, p_currency: els.currencySelect.value });
-    return;
-  }
-
-  group.currency = els.currencySelect.value;
-  render();
+  await changeGroupCurrency(els.currencySelect.value);
 });
 
 els.settleBtn.addEventListener("click", async () => {
