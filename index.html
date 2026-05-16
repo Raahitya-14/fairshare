@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FairShare</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Groups">
+        <div class="brand">
+          <div class="brand-mark">F</div>
+          <div>
+            <h1>FairShare</h1>
+            <p>Split bills cleanly</p>
+          </div>
+        </div>
+
+        <form id="group-form" class="inline-form">
+          <input id="group-name" type="text" placeholder="New group" autocomplete="off" required />
+          <button type="submit" title="Add group">+</button>
+        </form>
+
+        <nav id="group-list" class="group-list"></nav>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Current group</p>
+            <h2 id="active-group-title">Loading...</h2>
+          </div>
+          <div class="topbar-controls">
+            <label class="currency-control">
+              Currency
+              <select id="currency-select"></select>
+            </label>
+            <div class="actions">
+              <button id="share-btn" class="ghost" type="button">Copy link</button>
+              <button id="export-btn" class="ghost" type="button">Export</button>
+              <label class="ghost file-action">
+                Import
+                <input id="import-input" type="file" accept="application/json" />
+              </label>
+            </div>
+          </div>
+        </header>
+        <p id="sync-status" class="sync-status">Local mode</p>
+
+        <section class="summary-grid">
+          <article class="metric">
+            <span>Total spent</span>
+            <strong id="total-spent">$0.00</strong>
+          </article>
+          <article class="metric">
+            <span>Your balance</span>
+            <strong id="your-balance">$0.00</strong>
+          </article>
+          <article class="metric">
+            <span>Open expenses</span>
+            <strong id="expense-count">0</strong>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <h3>Members</h3>
+            </div>
+            <form id="member-form" class="inline-form">
+              <input id="member-name" type="text" placeholder="Add person" autocomplete="off" required />
+              <button type="submit" title="Add member">+</button>
+            </form>
+            <div id="member-list" class="member-list"></div>
+          </article>
+
+          <article class="panel add-expense-panel">
+            <div class="panel-header">
+              <h3>Add Expense</h3>
+            </div>
+            <form id="expense-form" class="expense-form">
+              <label>
+                Description
+                <input id="expense-description" type="text" placeholder="Dinner, rent, tickets" required />
+              </label>
+              <div class="form-row">
+                <label>
+                  Amount
+                  <input id="expense-amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+                </label>
+                <label>
+                  Paid by
+                  <select id="expense-payer" required></select>
+                </label>
+              </div>
+              <label>
+                Split between
+                <div id="split-members" class="check-grid"></div>
+              </label>
+              <button class="primary" type="submit">Add expense</button>
+            </form>
+          </article>
+
+          <article class="panel balances-panel">
+            <div class="panel-header">
+              <h3>Balances</h3>
+              <button id="settle-btn" class="ghost" type="button">Settle all</button>
+            </div>
+            <div id="balance-list" class="balance-list"></div>
+            <h4>Simplified payments</h4>
+            <div id="debt-list" class="debt-list"></div>
+          </article>
+
+          <article class="panel expenses-panel">
+            <div class="panel-header">
+              <h3>Expenses</h3>
+            </div>
+            <div id="expense-list" class="expense-list"></div>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <template id="empty-state-template">
+      <div class="empty-state">
+        <strong>Nothing here yet</strong>
+        <span>Add members and expenses to start splitting.</span>
+      </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
