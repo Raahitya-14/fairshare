@@ -279,8 +279,28 @@ function renderEmpty(target, message = "Add items to continue.") {
   target.replaceChildren(node);
 }
 
+function captureExpenseDraft() {
+  return {
+    description: els.expenseDescription.value,
+    amount: els.expenseAmount.value,
+    payerId: els.expensePayer.value,
+    splitMemberIds: [...els.splitMembers.querySelectorAll("input:checked")].map((input) => input.value),
+    hasRenderedSplits: els.splitMembers.querySelectorAll("input").length > 0,
+  };
+}
+
+function clearExpenseForm(group = activeGroup()) {
+  els.expenseDescription.value = "";
+  els.expenseAmount.value = "";
+  els.expensePayer.value = group.members[0]?.id || "";
+  els.splitMembers.querySelectorAll("input").forEach((input) => {
+    input.checked = true;
+  });
+}
+
 function render() {
   const group = activeGroup();
+  const expenseDraft = captureExpenseDraft();
   state.activeGroupId = group.id;
   const balances = calculateBalances(group);
   const payments = simplifyDebts(group, balances);
@@ -296,7 +316,7 @@ function render() {
 
   renderGroups(group);
   renderMembers(group);
-  renderExpenseForm(group);
+  renderExpenseForm(group, expenseDraft);
   renderBalances(group, balances, payments);
   renderExpenses(group);
   els.shareBtn.disabled = !group.shareCode;
@@ -354,26 +374,36 @@ function renderMembers(group) {
   );
 }
 
-function renderExpenseForm(group) {
+function renderExpenseForm(group, draft = captureExpenseDraft()) {
   els.expensePayer.replaceChildren(
     ...group.members.map((member) => {
       const option = document.createElement("option");
       option.value = member.id;
       option.textContent = member.name;
+      option.selected = member.id === draft.payerId;
       return option;
     })
   );
+  if (!group.members.some((member) => member.id === els.expensePayer.value)) {
+    els.expensePayer.value = group.members[0]?.id || "";
+  }
 
   els.splitMembers.replaceChildren(
     ...group.members.map((member) => {
+      const shouldCheck = draft.hasRenderedSplits ? draft.splitMemberIds.includes(member.id) : true;
       const label = document.createElement("label");
       label.className = "check-card";
-      label.innerHTML = `<input type="checkbox" checked /><span></span>`;
-      label.querySelector("input").value = member.id;
+      label.innerHTML = `<input type="checkbox" /><span></span>`;
+      const checkbox = label.querySelector("input");
+      checkbox.value = member.id;
+      checkbox.checked = shouldCheck;
       label.querySelector("span").textContent = member.name;
       return label;
     })
   );
+
+  els.expenseDescription.value = draft.description;
+  els.expenseAmount.value = draft.amount;
 }
 
 function renderBalances(group, balances, payments) {
@@ -532,7 +562,8 @@ els.expenseForm.addEventListener("submit", async (event) => {
       p_payer_id: els.expensePayer.value,
       p_split_member_ids: splitMemberIds,
     });
-    els.expenseForm.reset();
+    clearExpenseForm();
+    render();
     return;
   }
 
@@ -545,7 +576,7 @@ els.expenseForm.addEventListener("submit", async (event) => {
     createdAt: new Date().toISOString(),
   });
 
-  els.expenseForm.reset();
+  clearExpenseForm(group);
   render();
 });
 
